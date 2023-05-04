@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+
+RE_VERSION="1.0"
+RE_SOURCE_FILE_PATH="${HOME}/.remotes"
+
+# prints the help message
+print_usage() {
+    echo -e "
+usage: remotes [<option> ...]
+
+  \033[1m -l | --list\033[0m      List the remotes
+  \033[1m -e | --edit\033[0m      Edit the remotes source file
+  \033[1m -h | --help\033[0m      Print this help text and exit
+  \033[1m -v | --version\033[0m   Print the version and exit
+    "
+}
+
+# print the given message and exits
+die() {
+    echo -e "${*}" && exit 0
+}
+
+# reads the lines from the remotes file
+read_lines() {
+    grep -o '^[^#]*' "${RE_SOURCE_FILE_PATH}"
+}
+
+# prints the version and exits
+print_version() {
+    echo "remotes version ${RE_VERSION}" && exit 0
+}
+
+# edit the source remotes files
+edit_source_file() {
+    if [[ ! "$(which code)" == "" ]]; then
+        (code "${RE_SOURCE_FILE_PATH}" && exit 0)
+    elif [[ ! "$(which vim)" == "" ]]; then
+        (vim "${RE_SOURCE_FILE_PATH}" && exit 0)
+    fi
+}
+
+# lists all remotes
+list() {
+    echo
+    RE_LINES=$(read_lines)
+    RE_INDEX=1
+    for line in $RE_LINES; do
+
+        RE_USER=$(echo "$line" | rev | cut -d"@" -f2- | rev)
+        RE_HOST=$(echo "$line" | rev | cut -d"@" -f1 | rev)
+
+        echo -e "   \033[1m${RE_INDEX}\033[0m  ${RE_USER}@\033[1m${RE_HOST}\033[0m"
+        RE_INDEX=$((RE_INDEX + 1))
+    done
+    echo
+}
+
+# connect to remote
+connect() {
+    list
+    echo -e "Enter the number to connect to / \033[1mq\033[0m to quit:"
+    read -r -p "" RE_SELECTED_INDEX
+
+    [[ ! "${RE_SELECTED_INDEX}" == "q" ]] || exit 0
+
+    RE_TARGET_INDEX="${1}"
+    RE_LINES=$(read_lines)
+    RE_INDEX=1
+
+    for line in $RE_LINES; do
+
+        if [[ "${RE_INDEX}" == "${RE_SELECTED_INDEX}" ]]; then
+            echo "Connecting ${line}"
+            ssh "${line}"
+            exit 0
+        fi
+
+        RE_INDEX=$((RE_INDEX + 1))
+    done
+}
+
+# guard .remotes file existence
+[[ -f "${RE_SOURCE_FILE_PATH}" ]] || die "File ${RE_SOURCE_FILE_PATH} not existing."
+
+# guard existence of argument / command
+[[ $# -ne 0 ]] || (connect && exit 0)
+
+while (($# > 0)); do
+    opt="${1}"
+    shift
+
+    case $opt in
+    --list | -l)
+        list
+        exit 0
+        ;;
+    --edit | -e)
+        edit_source_file
+        exit 0
+        ;;
+    --help | -h)
+        print_usage
+        exit 0
+        ;;
+    --version | -v)
+        print_version
+        exit 0
+        ;;
+    *)
+        die "Unknown command: '${opt}'.  Pass '--help' for a list of commands."
+        ;;
+    esac
+done
+
+exit 0
