@@ -4,7 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-RE_VERSION="1.0"
+RE_VERSION="1.0.0"
 RE_SOURCE_FILE_PATH="${HOME}/.remotes"
 RE_NUMBER=""
 
