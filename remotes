@@ -1,17 +1,24 @@
 #!/usr/bin/env bash
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 RE_VERSION="1.0"
 RE_SOURCE_FILE_PATH="${HOME}/.remotes"
+RE_NUMBER=""
 
 # prints the help message
 print_usage() {
     echo -e "
-usage: remotes [<option> ...]
+usage: remotes [<option> ... | <remote-number>]
 
-  \033[1m -l | --list\033[0m      List the remotes
-  \033[1m -e | --edit\033[0m      Edit the remotes source file
-  \033[1m -h | --help\033[0m      Print this help text and exit
-  \033[1m -v | --version\033[0m   Print the version and exit
+OPTIONS:
+
+  $(bold "-l | --list")      List the remotes
+  $(bold "-e | --edit")      Edit the remotes source file
+  $(bold "-h | --help")      Print this help text and exit
+  $(bold "-v | --version")   Print the version and exit
     "
 }
 
@@ -20,14 +27,26 @@ die() {
     echo -e "${*}" && exit 0
 }
 
+bold() {
+    echo -e "\033[1m${1}\033[0m"
+}
+
 # reads the lines from the remotes file
 read_lines() {
-    grep -o '^[^#]*' "${RE_SOURCE_FILE_PATH}"
+    if [[ -f "${RE_SOURCE_FILE_PATH}" ]]; then
+        grep -o '^[^#]*' "${RE_SOURCE_FILE_PATH}"
+    else
+        die "File ${RE_SOURCE_FILE_PATH} not existing."
+    fi
+}
+
+read_line_from_number() {
+    read_lines | sed -n "${1}p"
 }
 
 # prints the version and exits
 print_version() {
-    echo "remotes version ${RE_VERSION}" && exit 0
+    echo "remotes version ${RE_VERSION}"
 }
 
 # edit the source remotes files
@@ -43,47 +62,50 @@ edit_source_file() {
 list() {
     echo
     RE_LINES=$(read_lines)
-    RE_INDEX=1
+    RE_NUMBER=1
     for line in $RE_LINES; do
 
         RE_USER=$(echo "$line" | rev | cut -d"@" -f2- | rev)
         RE_HOST=$(echo "$line" | rev | cut -d"@" -f1 | rev)
 
-        echo -e "   \033[1m${RE_INDEX}\033[0m  ${RE_USER}@\033[1m${RE_HOST}\033[0m"
-        RE_INDEX=$((RE_INDEX + 1))
+        echo -e "$(bold "${RE_NUMBER}")  ${RE_USER}@$(bold "${RE_HOST}")"
+        RE_NUMBER=$((RE_NUMBER + 1))
     done
     echo
 }
 
-# connect to remote
-connect() {
-    list
-    echo -e "Enter the number to connect to / \033[1mq\033[0m to quit:"
-    read -r -p "" RE_SELECTED_INDEX
+connect_to_remote() {
+    if [[ ! "${1}" =~ ^[0-9]+$ ]]; then
+        die "Invalid number: ${1}"
+    fi
 
-    [[ ! "${RE_SELECTED_INDEX}" == "q" ]] || exit 0
+    RE_REMOTE=$(read_line_from_number "${1}")
 
-    RE_TARGET_INDEX="${1}"
-    RE_LINES=$(read_lines)
-    RE_INDEX=1
+    if [[ "${RE_REMOTE}" == "" ]]; then
+        die "Invalid number: ${1}"
+    fi
 
-    for line in $RE_LINES; do
+    echo && echo "ssh ${RE_REMOTE}" && echo
 
-        if [[ "${RE_INDEX}" == "${RE_SELECTED_INDEX}" ]]; then
-            echo "Connecting ${line}"
-            ssh "${line}"
-            exit 0
-        fi
+    ssh "${RE_REMOTE}"
 
-        RE_INDEX=$((RE_INDEX + 1))
-    done
+    exit 0
 }
 
-# guard .remotes file existence
-[[ -f "${RE_SOURCE_FILE_PATH}" ]] || die "File ${RE_SOURCE_FILE_PATH} not existing."
+# connect to remote
+connect_interactive() {
+    list
+    read -r -p "Enter the number to connect to / $(bold "q") to quit: " RE_ANSWERE
+
+    if [[ "${RE_ANSWERE}" == "q" ]]; then
+        exit 0
+    else
+        connect_to_remote "${RE_ANSWERE}"
+    fi
+}
 
 # guard existence of argument / command
-[[ $# -ne 0 ]] || (connect && exit 0)
+[[ $# -ne 0 ]] || connect_interactive
 
 while (($# > 0)); do
     opt="${1}"
@@ -106,10 +128,20 @@ while (($# > 0)); do
         print_version
         exit 0
         ;;
+    '' | *[!0-9]*)
+        die "Unknown option: '${opt}'.  Pass '$(bold "--help")' for a list of commands."
+        ;;
     *)
-        die "Unknown command: '${opt}'.  Pass '--help' for a list of commands."
+        RE_NUMBER="${opt}"
         ;;
     esac
 done
 
+if [[ "${RE_NUMBER}" == "" ]]; then
+    die "no number specified"
+else
+    connect_to_remote "${RE_NUMBER}"
+fi
+
+# clean exit
 exit 0
