@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 set -o errexit
 set -o nounset
@@ -10,7 +10,7 @@ RE_NUMBER=""
 
 # prints the help message
 print_usage() {
-    echo -e "
+    echo "
 usage: remotes [<option> ... | <remote-number>]
 
 OPTIONS:
@@ -24,11 +24,11 @@ OPTIONS:
 
 # print the given message and exits
 die() {
-    echo -e "${*}" && exit 0
+    echo "${*}" && exit 0
 }
 
 bold() {
-    echo -e "\033[1m${1}\033[0m"
+    echo "\033[1m${1}\033[0m"
 }
 
 # reads the lines from the remotes file
@@ -68,7 +68,7 @@ list() {
         RE_USER=$(echo "$line" | rev | cut -d"@" -f2- | rev)
         RE_HOST=$(echo "$line" | rev | cut -d"@" -f1 | rev)
 
-        echo -e "$(bold "${RE_NUMBER}")  ${RE_USER}@$(bold "${RE_HOST}")"
+        echo "$(bold "${RE_NUMBER}")  ${RE_USER}@$(bold "${RE_HOST}")"
         RE_NUMBER=$((RE_NUMBER + 1))
     done
     echo
