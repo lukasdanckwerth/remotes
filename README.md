@@ -1,30 +1,28 @@
 # remotes
 
-Usage:
+## Install
 
 ```shell
-$ remotes
+# to install the command simply run
+$ make
 
-1  ubuntu@development-server
-2  pi@rpi-sony-str-d265
-3  pi@rpi-camera
-4  pi@rpi-proxy
-
-Enter the number to connect to / q to quit:
+# to uninstall run
+$ make uninstall
 ```
 
-Help message:
+## Usage:
 
 ```shell
 $ remotes --help
 
-usage: remotes [<option> ... | <remote-number>]
+usage: remotes [<option> ...]
 
 OPTIONS:
 
-  -l | --list      List the remotes
-  -e | --edit      Edit the remotes source file
-  -h | --help      Print this help text and exit
-  -v | --version   Print the version and exit
+  -l | --list           List the remotes
+  -e | --edit           Edit the remotes source file
+  -h | --help           Print this help text and exit
+  -v | --version        Print the version and exit
+  -n | --number <num>   Connect to the remote with the specified number
 
 ```
