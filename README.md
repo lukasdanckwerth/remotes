@@ -16,6 +16,7 @@ Enter the number to connect to / q to quit:
 Help message:
 
 ```shell
+$ remotes --help
 
 usage: remotes [<option> ... | <remote-number>]
 
